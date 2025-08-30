@@ -331,9 +331,6 @@ FodyWeavers.xsd
 docker-compose.override.yml
 .dockerignore
 
-# Docker data volumes
-**/data/
-
 ## Ignorar arquivos de ambiente e configurações sensíveis ##
 
 # Environment variables
@@ -344,9 +341,9 @@ docker-compose.override.yml
 .env.production.local
 
 # App settings
-appsettings.*.json
-appsettings.*.yml
-appsettings.*.yaml
+# appsettings.*.json
+# appsettings.*.yml
+# appsettings.*.yaml
 
 # User-specific files
 *.usersecret
@@ -461,7 +458,7 @@ public
 ## Ignorar arquivos de desenvolvimento local ##
 
 # Local development files
-local.settings.json
+# local.settings.json
 local.config.json
 
 ## Ignorar arquivos de deployment ##

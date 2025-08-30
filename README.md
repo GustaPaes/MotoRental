@@ -1,76 +1,196 @@
-# Desafio backend Mottu.
-Seja muito bem-vindo ao desafio backend da Mottu, obrigado pelo interesse em fazer parte do nosso time e ajudar a melhorar a vida de milhares de pessoas.
+# MotoRental - Sistema de Gerenciamento de Aluguel de Motos
 
-## Instruções
-- O desafio é válido para diversos níveis, portanto não se preocupe se não conseguir resolver por completo.
-- A aplicação só será avaliada se estiver rodando, se necessário crie um passo a passo para isso.
-- Faça um clone do repositório em seu git pessoal para iniciar o desenvolvimento e não cite nada relacionado a Mottu.
-- Após teste realizado, favor encaminha-lo via Link abaixo:
-Link: [Formulário - Mottu - Desafio Backend](https://forms.office.com/r/25yMPCax5S)
+[![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docker.com)
 
-## Requisitos não funcionais 
-- A aplicação deverá ser construida com .Net utilizando C#.
-- Utilizar apenas os seguintes bancos de dados (Postgress, MongoDB)
-    - Não utilizar PL/pgSQL
-- Escolha o sistema de mensageria de sua preferencia( RabbitMq, Sqs/Sns , Kafka, Gooogle Pub/Sub ou qualquer outro)
+Sistema backend para gerenciamento de aluguel de motos e entregadores, desenvolvido com .NET 8 seguindo princípios de Clean Architecture e Domain-Driven Design.
 
-## Aplicação a ser desenvolvida
-Seu objetivo é criar uma aplicação para gerenciar aluguel de motos e entregadores. Quando um entregador estiver registrado e com uma locação ativa poderá também efetuar entregas de pedidos disponíveis na plataforma.
+## 📋 Índice
 
-Iremos executar um teste de integração para validar os cenários de uso. Por isso, sua aplicação deve seguir exatamente as especificações de API`s Rest do nosso Swager: request, response e status code.
-Garanta que os atributos dos JSON`s e estão de acordo com o Swagger abaixo.
+- [Visão Geral](#-visão-geral)
+- [Arquitetura](#-arquitetura)
+- [Funcionalidades](#-funcionalidades)
+- [Tecnologias](#-tecnologias)
+- [Pré-requisitos](#-pré-requisitos)
+- [Instalação e Execução](#-instalação-e-execução)
+- [Testes](#-testes)
+- [API Endpoints](#-api-endpoints)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
+- [Padrões de Design](#-padrões-de-design)
+- [Licença](#-licença)
 
-Swagger de referência:
-https://app.swaggerhub.com/apis-docs/Mottu/mottu_desafio_backend/1.0.0
+## 🎯 Visão Geral
 
-### Casos de uso
-- Eu como usuário admin quero cadastrar uma nova moto.
-  - Os dados obrigatórios da moto são Identificador, Ano, Modelo e Placa
-  - A placa é um dado único e não pode se repetir.
-  - Quando a moto for cadastrada a aplicação deverá gerar um evento de moto cadastrada
-    - A notificação deverá ser publicada por mensageria.
-    - Criar um consumidor para notificar quando o ano da moto for "2024"
-    - Assim que a mensagem for recebida, deverá ser armazenada no banco de dados para consulta futura.
-- Eu como usuário admin quero consultar as motos existentes na plataforma e conseguir filtrar pela placa.
-- Eu como usuário admin quero modificar uma moto alterando apenas sua placa que foi cadastrado indevidamente
-- Eu como usuário admin quero remover uma moto que foi cadastrado incorretamente, desde que não tenha registro de locações.
-- Eu como usuário entregador quero me cadastrar na plataforma para alugar motos.
-    - Os dados do entregador são( identificador, nome, cnpj, data de nascimento, número da CNHh, tipo da CNH, imagemCNH)
-    - Os tipos de cnh válidos são A, B ou ambas A+B.
-    - O cnpj é único e não pode se repetir.
-    - O número da CNH é único e não pode se repetir.
-- Eu como entregador quero enviar a foto de minha cnh para atualizar meu cadastro.
-    - O formato do arquivo deve ser png ou bmp.
-    - A foto não poderá ser armazenada no banco de dados, você pode utilizar um serviço de storage( disco local, amazon s3, minIO ou outros).
-- Eu como entregador quero alugar uma moto por um período.
-    - Os planos disponíveis para locação são:
-        - 7 dias com um custo de R$30,00 por dia
-        - 15 dias com um custo de R$28,00 por dia
-        - 30 dias com um custo de R$22,00 por dia
-        - 45 dias com um custo de R$20,00 por dia
-        - 50 dias com um custo de R$18,00 por dia
-    - A locação obrigatóriamente tem que ter uma data de inicio e uma data de término e outra data de previsão de término.
-    - O inicio da locação obrigatóriamente é o primeiro dia após a data de criação.
-    - Somente entregadores habilitados na categoria A podem efetuar uma locação
-- Eu como entregador quero informar a data que irei devolver a moto e consultar o valor total da locação.
-    - Quando a data informada for inferior a data prevista do término, será cobrado o valor das diárias e uma multa adicional
-        - Para plano de 7 dias o valor da multa é de 20% sobre o valor das diárias não efetivadas.
-        - Para plano de 15 dias o valor da multa é de 40% sobre o valor das diárias não efetivadas.
-    - Quando a data informada for superior a data prevista do término, será cobrado um valor adicional de R$50,00 por diária adicional.
-    
+O MotoRental é uma aplicação backend completa para gerenciar o aluguel de motos e cadastro de entregadores. O sistema inclui funcionalidades para:
 
-## Diferenciais 🚀
-- Testes unitários
-- Testes de integração
-- EntityFramework e/ou Dapper
-- Docker e Docker Compose
-- Design Patterns
-- Documentação
-- Tratamento de erros
-- Arquitetura e modelagem de dados
-- Código escrito em língua inglesa
-- Código limpo e organizado
-- Logs bem estruturados
-- Seguir convenções utilizadas pela comunidade
-  
+- Cadastro e gestão de motos
+- Registro de entregadores com validação de documentos
+- Sistema de locações com cálculos automáticos de custos
+- Armazenamento de imagens de CNH
+- Sistema de mensageria para eventos de domínio
+- Notificações para motos cadastradas em 2024
 
+## 🏗️ Arquitetura
+
+A aplicação segue os princípios de **Clean Architecture** e **Domain-Driven Design (DDD)**, organizada em camadas bem definidas:
+
+### Camadas da Aplicação
+
+1. **Domain** - Entidades, value objects, interfaces de repositório e eventos de domínio
+2. **Application** - Casos de uso, serviços de aplicação, DTOs e validações
+3. **Infrastructure** - Implementações de persistência, mensageria e storage
+4. **API** - Controladores, middleware e configuração da aplicação
+
+### Vantagens da Arquitetura
+
+- **Baixo acoplamento** entre componentes
+- **Alta testabilidade** com dependências invertidas
+- **Manutenibilidade** com responsabilidades bem definidas
+- **Flexibilidade** para substituir implementações de infraestrutura
+- **Escalabilidade** para adicionar novos recursos
+
+## ✨ Funcionalidades
+
+- ✅ Cadastro de motos com validação de placa única
+- ✅ Sistema de mensageria para eventos de moto cadastrada
+- ✅ Consumer para notificações de motos 2024 (armazenadas no MongoDB)
+- ✅ Consulta e filtro de motos por placa
+- ✅ Atualização de placa de moto
+- ✅ Remoção de motos sem histórico de locação
+- ✅ Cadastro de entregadores com validação de CNPJ e CNH únicos
+- ✅ Upload de imagem da CNH (formatos PNG/BMP)
+- ✅ Armazenamento de imagens em MinIO (S3-compatible)
+- ✅ Sistema de locação com planos pré-definidos
+- ✅ Cálculo automático de custos com multas e acréscimos
+- ✅ Validação de tipo de CNH para locação (apenas categoria A)
+
+## 🛠️ Tecnologias
+
+- **.NET 8** - Framework principal
+- **PostgreSQL** - Banco de dados relacional
+- **MongoDB** - Armazenamento de notificações
+- **RabbitMQ** - Sistema de mensageria
+- **MinIO** - Armazenamento de objetos (S3-compatible)
+- **Entity Framework Core** - ORM com abordagem Code-First
+- **Docker & Docker Compose** - Conteinerização e orquestração
+- **xUnit & Moq** - Testes automatizados e mocking
+- **Serilog** - Logging estruturado
+- **FluentValidation** - Validação de inputs
+
+## 📋 Pré-requisitos
+
+- [Docker](https://www.docker.com/products/docker-desktop) (versão 20.10+)
+- [Docker Compose](https://docs.docker.com/compose/install/) (versão 2.0+)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (opcional, para desenvolvimento)
+
+## 🚀 Instalação e Execução
+
+### Via Docker Compose (Recomendado)
+
+1. Clone o repositório:
+```bash
+git clone <url-do-repositorio>
+cd MotoRental
+```
+
+2. Execute os containers:
+```bash
+docker-compose up -d
+```
+
+3. Acesse os serviços:
+   - **API**: http://localhost:5000
+   - **Swagger UI**: http://localhost:5000/swagger
+   - **MinIO Console**: http://localhost:9001 (usuário: minioadmin, senha: minioadmin)
+   - **RabbitMQ Management**: http://localhost:15672 (usuário: guest, senha: guest)
+
+### Para Desenvolvimento
+
+1. Restaure as dependências:
+```bash
+dotnet restore
+```
+
+2. Execute a aplicação:
+```bash
+dotnet run --project src/MotoRental.API
+```
+
+3. Execute os testes:
+```bash
+dotnet test
+```
+
+## 🧪 Testes
+
+A aplicação inclui testes unitários e de integração:
+
+```bash
+# Executar todos os testes
+dotnet test
+
+# Executar testes com cobertura de código (requer reportgenerator)
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+## 📡 API Endpoints
+
+A API segue as especificações do Swagger disponível em `/swagger` quando a aplicação estiver rodando. Os principais endpoints incluem:
+
+### Motos
+- `GET /api/motorcycles` - Listar motos (com filtro por placa)
+- `POST /api/motorcycles` - Cadastrar nova moto
+- `PUT /api/motorcycles/{id}` - Atualizar placa da moto
+- `DELETE /api/motorcycles/{id}` - Remover moto
+
+### Entregadores
+- `POST /api/deliverypeople` - Cadastrar entregador
+- `POST /api/deliverypeople/{id}/cnh-image` - Upload de imagem da CNH
+
+### Locações
+- `POST /api/rentals` - Criar nova locação
+- `POST /api/rentals/{id}/return` - Registrar devolução e calcular custo final
+
+## 📁 Estrutura do Projeto
+
+```
+MotoRental/
+├── src/
+│   ├── MotoRental.API/                 # Camada de apresentação
+│   ├── MotoRental.Application/         # Casos de uso e serviços
+│   ├── MotoRental.Domain/              # Entidades e contratos
+│   └── MotoRental.Infrastructure/      # Implementações de infraestrutura
+├── test/
+│   └── MotoRental.Test/                # Testes unitários e de integração
+├── docker-compose.yml                  # Orquestração de containers
+└── Dockerfile                         # Build da aplicação
+```
+
+## 🎨 Padrões de Design
+
+A aplicação implementa diversos padrões de design:
+
+- **Repository Pattern** - Abstração do acesso a dados
+- **Unit of Work** - Gerenciamento de transações
+- **Dependency Injection** - Inversão de controle
+- **Strategy Pattern** - Para cálculo de custos de locação
+- **Observer Pattern** - Para eventos de domínio
+- **CQRS** - Separação de leituras e escritas (parcial)
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 🤝 Contribuição
+
+Contribuições são sempre bem-vindas! Para contribuir:
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+---
+
+**Desenvolvido com .NET 8 e Clean Architecture**

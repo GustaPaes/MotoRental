@@ -1,0 +1,57 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: motorental
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - minio
+    environment:
+      ConnectionStrings:PostgreSQL: Host=postgres;Database=motorental;Username=postgres;Password=postgres
+      RabbitMQ:HostName: rabbitmq
+      RabbitMQ:UserName: guest
+      RabbitMQ:Password: guest
+      MinIO:Endpoint: http://minio:9000
+      MinIO:AccessKey: minioadmin
+      MinIO:SecretKey: minioadmin
+      MinIO:BucketName: motorental
+
+volumes:
+  postgres_data:
+  minio_data:

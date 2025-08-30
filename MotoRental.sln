@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoRental.API", "src\MotoRental.API\MotoRental.API.csproj", "{41B4074E-87BA-42A5-9503-E1D561DF98C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoRental.Application", "src\MotoRental.Application\MotoRental.Application.csproj", "{E6A4D2D5-F031-41AE-BF65-F27C228A2A8F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoRental.Domain", "src\MotoRental.Domain\MotoRental.Domain.csproj", "{2656B2A3-992C-474F-839E-A0A532F98BF9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoRental.Infrastructure", "src\MotoRental.Infrastructure\MotoRental.Infrastructure.csproj", "{720D4CC2-85DD-4666-AFBB-FBD45D6DCC0A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoRental.Test", "test\MotoRental.Test\MotoRental.Test.csproj", "{AD4CF176-6ECA-4646-BB67-EAEFBDC719CF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41B4074E-87BA-42A5-9503-E1D561DF98C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41B4074E-87BA-42A5-9503-E1D561DF98C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41B4074E-87BA-42A5-9503-E1D561DF98C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41B4074E-87BA-42A5-9503-E1D561DF98C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6A4D2D5-F031-41AE-BF65-F27C228A2A8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6A4D2D5-F031-41AE-BF65-F27C228A2A8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6A4D2D5-F031-41AE-BF65-F27C228A2A8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6A4D2D5-F031-41AE-BF65-F27C228A2A8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2656B2A3-992C-474F-839E-A0A532F98BF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2656B2A3-992C-474F-839E-A0A532F98BF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2656B2A3-992C-474F-839E-A0A532F98BF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2656B2A3-992C-474F-839E-A0A532F98BF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{720D4CC2-85DD-4666-AFBB-FBD45D6DCC0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{720D4CC2-85DD-4666-AFBB-FBD45D6DCC0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{720D4CC2-85DD-4666-AFBB-FBD45D6DCC0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{720D4CC2-85DD-4666-AFBB-FBD45D6DCC0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD4CF176-6ECA-4646-BB67-EAEFBDC719CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD4CF176-6ECA-4646-BB67-EAEFBDC719CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD4CF176-6ECA-4646-BB67-EAEFBDC719CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD4CF176-6ECA-4646-BB67-EAEFBDC719CF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

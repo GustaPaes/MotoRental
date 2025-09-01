@@ -43,13 +43,16 @@ namespace MotoRental.Application.Services
             {
                 int unusedDays = (rental.ExpectedEndDate - returnDate).Days;
                 decimal unusedCost = dailyRate * unusedDays;
-                decimal penalty = planDays switch
+
+                // Correção no cálculo da multa
+                decimal penaltyPercentage = planDays switch
                 {
-                    7 => unusedCost * 0.20m,
-                    15 => unusedCost * 0.40m,
-                    _ => unusedCost * 0.50m
+                    7 => 0.20m,
+                    15 => 0.40m,
+                    _ => 0.50m
                 };
 
+                decimal penalty = unusedCost * penaltyPercentage;
                 return baseCost - unusedCost + penalty;
             }
             else if (returnDate > rental.ExpectedEndDate)

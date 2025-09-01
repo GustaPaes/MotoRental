@@ -26,6 +26,16 @@ namespace MotoRental.Infrastructure.Data
                 .HasIndex(d => d.CnhNumber)
                 .IsUnique();
 
+            modelBuilder.Entity<Rental>()
+                .HasOne(r => r.Motorcycle)
+                .WithMany()
+                .HasForeignKey(r => r.MotorcycleId);
+
+            modelBuilder.Entity<Rental>()
+                .HasOne(r => r.DeliveryPerson)
+                .WithMany()
+                .HasForeignKey(r => r.DeliveryPersonId);
+
             base.OnModelCreating(modelBuilder);
         }
 

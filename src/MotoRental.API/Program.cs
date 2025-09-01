@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Minio;
 using MongoDB.Driver;
 using MotoRental.Application.Interfaces;
+using MotoRental.Application.Services;
 using MotoRental.Domain.Entities;
 using MotoRental.Infrastructure.Consumers;
 using MotoRental.Infrastructure.Data;

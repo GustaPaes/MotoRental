@@ -9,28 +9,17 @@ namespace MotoRental.API.Controllers
 {
     [ApiController]
     [Route("api/motorcycles")]
-    public class MotorcyclesController : ControllerBase
+    public class MotorcyclesController(
+        ApplicationDbContext context,
+        IMessageService messageService,
+        ILogger<MotorcyclesController> logger) : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IMessageService _messageService;
-        private readonly ILogger<MotorcyclesController> _logger;
-
-        public MotorcyclesController(
-            ApplicationDbContext context,
-            IMessageService messageService,
-            ILogger<MotorcyclesController> logger)
-        {
-            _context = context;
-            _messageService = messageService;
-            _logger = logger;
-        }
-
         [HttpGet]
         public async Task<IActionResult> GetMotorcycles([FromQuery] string licensePlate = null)
         {
             try
             {
-                var query = _context.Motorcycles.AsQueryable();
+                var query = context.Motorcycles.AsQueryable();
 
                 if (!string.IsNullOrEmpty(licensePlate))
                     query = query.Where(m => m.LicensePlate.Contains(licensePlate));
@@ -40,7 +29,7 @@ namespace MotoRental.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting motorcycles");
+                logger.LogError(ex, "Erro ao obter motocicletas");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -50,7 +39,7 @@ namespace MotoRental.API.Controllers
         {
             try
             {
-                var motorcycle = await _context.Motorcycles.FindAsync(id);
+                var motorcycle = await context.Motorcycles.FindAsync(id);
 
                 if (motorcycle == null)
                     return NotFound();
@@ -59,7 +48,7 @@ namespace MotoRental.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting motorcycle with ID: {Id}", id);
+                logger.LogError(ex, "Erro ao obter motocicleta com ID: {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -69,15 +58,15 @@ namespace MotoRental.API.Controllers
         {
             try
             {
-                if (await _context.Motorcycles.AnyAsync(m => m.LicensePlate == motorcycle.LicensePlate))
-                    return Conflict("License plate already exists");
+                if (await context.Motorcycles.AnyAsync(m => m.LicensePlate == motorcycle.LicensePlate))
+                    return Conflict("A placa já existe");
 
                 motorcycle.Id = Guid.NewGuid();
-                _context.Motorcycles.Add(motorcycle);
-                await _context.SaveChangesAsync();
+                context.Motorcycles.Add(motorcycle);
+                await context.SaveChangesAsync();
 
                 // Publish event
-                await _messageService.PublishMessage(new MotorcycleCreatedEvent
+                await messageService.PublishMessage(new MotorcycleCreatedEvent
                 {
                     Id = motorcycle.Id,
                     Year = motorcycle.Year,
@@ -89,7 +78,7 @@ namespace MotoRental.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating motorcycle");
+                logger.LogError(ex, "Erro ao criar motocicleta");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -100,13 +89,13 @@ namespace MotoRental.API.Controllers
             try
             {
                 if (id != motorcycle.Id)
-                    return BadRequest("ID mismatch");
+                    return BadRequest("Incompatibilidade de ID");
 
-                if (await _context.Motorcycles.AnyAsync(m => m.LicensePlate == motorcycle.LicensePlate && m.Id != id))
-                    return Conflict("License plate already exists");
+                if (await context.Motorcycles.AnyAsync(m => m.LicensePlate == motorcycle.LicensePlate && m.Id != id))
+                    return Conflict("A placa já existe");
 
-                _context.Entry(motorcycle).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
+                context.Entry(motorcycle).State = EntityState.Modified;
+                await context.SaveChangesAsync();
 
                 return NoContent();
             }
@@ -119,7 +108,7 @@ namespace MotoRental.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating motorcycle with ID: {Id}", id);
+                logger.LogError(ex, "Erro ao atualizar motocicleta com ID: {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -129,29 +118,29 @@ namespace MotoRental.API.Controllers
         {
             try
             {
-                var motorcycle = await _context.Motorcycles.FindAsync(id);
+                var motorcycle = await context.Motorcycles.FindAsync(id);
                 if (motorcycle == null)
                     return NotFound();
 
                 // Check if motorcycle has rentals
-                if (await _context.Rentals.AnyAsync(r => r.MotorcycleId == id))
-                    return BadRequest("Cannot delete motorcycle with rental history");
+                if (await context.Rentals.AnyAsync(r => r.MotorcycleId == id))
+                    return BadRequest("Não é possível excluir motocicleta com histórico de aluguel");
 
-                _context.Motorcycles.Remove(motorcycle);
-                await _context.SaveChangesAsync();
+                context.Motorcycles.Remove(motorcycle);
+                await context.SaveChangesAsync();
 
                 return NoContent();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting motorcycle with ID: {Id}", id);
+                logger.LogError(ex, "Erro ao excluir motocicleta com ID: {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
 
         private async Task<bool> MotorcycleExists(Guid id)
         {
-            return await _context.Motorcycles.AnyAsync(e => e.Id == id);
+            return await context.Motorcycles.AnyAsync(e => e.Id == id);
         }
     }
 }

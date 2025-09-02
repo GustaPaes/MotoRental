@@ -9,7 +9,7 @@ COPY ["src/MotoRental.Application/MotoRental.Application.csproj", "MotoRental.Ap
 COPY ["src/MotoRental.Domain/MotoRental.Domain.csproj", "MotoRental.Domain/"]
 COPY ["src/MotoRental.Infrastructure/MotoRental.Infrastructure.csproj", "MotoRental.Infrastructure/"]
 RUN dotnet restore "MotoRental.API/MotoRental.API.csproj"
-COPY . .
+COPY src/ ./
 WORKDIR "/src/MotoRental.API"
 RUN dotnet build -c Release -o /app/build
 

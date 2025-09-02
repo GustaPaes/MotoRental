@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Minio;
 using MongoDB.Driver;
 using MotoRental.Application.Interfaces;
@@ -37,14 +38,35 @@ builder.Services.AddScoped(sp =>
 // Configure RabbitMQ
 builder.Services.AddSingleton<IConnection>(sp =>
 {
+    var logger = sp.GetRequiredService<ILogger<Program>>();
     var factory = new ConnectionFactory()
     {
         HostName = builder.Configuration["RabbitMQ:HostName"],
         UserName = builder.Configuration["RabbitMQ:UserName"],
         Password = builder.Configuration["RabbitMQ:Password"],
-        DispatchConsumersAsync = true
+        DispatchConsumersAsync = true,
+        AutomaticRecoveryEnabled = true,
+        NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
     };
-    return factory.CreateConnection();
+
+    var retryCount = 0;
+    const int maxRetries = 5;
+
+    while (retryCount < maxRetries)
+    {
+        try
+        {
+            return factory.CreateConnection();
+        }
+        catch (Exception ex)
+        {
+            retryCount++;
+            logger.LogError(ex, "Falha na tentativa {RetryCount} de conexão ao RabbitMQ. Tentando novamente em 5s...", retryCount);
+            Thread.Sleep(5000);
+        }
+    }
+
+    throw new InvalidOperationException($"Não foi possível conectar ao RabbitMQ após {maxRetries} tentativas");
 });
 
 builder.Services.AddScoped<IMessageService, MessageService>();
@@ -82,14 +104,36 @@ builder.Services.AddHostedService<MotorcycleCreatedConsumer>();
 // Add logging
 builder.Services.AddLogging();
 
+// Configure Swagger
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "MotoRental API",
+        Version = "v1",
+        Description = "API para gerenciamento de aluguel de motos",
+        Contact = new OpenApiContact
+        {
+            Name = "Gustavo Paes de Liz",
+            Url = new Uri("https://github.com/GustaPaes")
+        },
+        License = new OpenApiLicense
+        {
+            Name = "MIT License",
+            Url = new Uri("https://opensource.org/licenses/MIT")
+        }
+    });
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MotoRental API V1");
+    options.RoutePrefix = "api-docs";
+    options.DocumentTitle = "MotoRental API Documentation";
+});
 
 app.UseHttpsRedirection();
 app.UseAuthorization();

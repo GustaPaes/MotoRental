@@ -72,7 +72,7 @@ namespace MotoRental.API.Controllers
                     Year = motorcycle.Year,
                     LicensePlate = motorcycle.LicensePlate,
                     CreatedAt = DateTime.UtcNow
-                }, "motorcycle-created");
+                }, "motorcycle-created-queue");
 
                 return CreatedAtAction(nameof(GetMotorcycle), new { id = motorcycle.Id }, motorcycle);
             }

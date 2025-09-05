@@ -1,163 +1,104 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MotoRental.Application.DTOs.Rental;
+using MotoRental.API.DTOs;
 using MotoRental.Application.Interfaces;
-using MotoRental.Infrastructure.Data;
 
 namespace MotoRental.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("locacao")]
     public class RentalsController(
         IRentalService rentalService,
-        ApplicationDbContext context,
         ILogger<RentalsController> logger) : ControllerBase
     {
         [HttpPost]
-        public async Task<IActionResult> CreateRental([FromBody] CreateRentalRequest request)
+        public async Task<IActionResult> CreateLocacao([FromBody] RentalCreateDto request)
         {
             try
             {
-                var rental = await rentalService.CreateRentalAsync(request);
-                return CreatedAtAction(nameof(GetRental), new { id = rental.Id }, rental);
+                var rentalCreateDTO = new Application.DTOs.RentalCreateDTO
+                {
+                    DeliveryPersonId = request.DeliveryPersonId,
+                    MotorcycleId = request.MotorcycleId,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    ExpectedEndDate = request.ExpectedEndDate,
+                    Plan = request.Plan
+                };
+
+                var rentalId = await rentalService.CreateAsync(rentalCreateDTO);
+                return StatusCode(201);
             }
             catch (InvalidOperationException ex)
             {
-                logger.LogError(ex, "Erro ao criar aluguel");
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                logger.LogError(ex, "Erro ao criar aluguel");
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Erro interno ao criar aluguel");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetRentals([FromQuery] Guid? deliveryPersonId = null, [FromQuery] Guid? motorcycleId = null)
-        {
-            try
-            {
-                var query = context.Rentals
-                    .Include(r => r.Motorcycle)
-                    .Include(r => r.DeliveryPerson)
-                    .AsQueryable();
-
-                if (deliveryPersonId.HasValue)
-                    query = query.Where(r => r.DeliveryPersonId == deliveryPersonId.Value);
-
-                if (motorcycleId.HasValue)
-                    query = query.Where(r => r.MotorcycleId == motorcycleId.Value);
-
-                var rentals = await query.ToListAsync();
-                return Ok(rentals);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Erro ao obter aluguéis");
-                return StatusCode(500, "Internal server error");
+                logger.LogError(ex, "Erro ao criar locação");
+                return StatusCode(500, new { mensagem = "Erro interno do servidor" });
             }
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetRental(Guid id)
+        public async Task<IActionResult> GetLocacao(Guid id)
         {
             try
             {
-                var rental = await context.Rentals
-                    .Include(r => r.Motorcycle)
-                    .Include(r => r.DeliveryPerson)
-                    .FirstOrDefaultAsync(r => r.Id == id);
+                var rental = await rentalService.GetByIdAsync(id);
 
                 if (rental == null)
-                    return NotFound();
+                    return NotFound(new { mensagem = "Locação não encontrada" });
 
-                return Ok(rental);
+                // Calcular valor diário médio
+                int rentalDays = (rental.EndDate - rental.StartDate).Days;
+                decimal dailyCost = rentalDays > 0 ? rental.TotalCost / rentalDays : 0;
+
+                var response = new RentalResponseDto
+                {
+                    Id = rental.Id,
+                    DailyCost = dailyCost,
+                    DeliveryPersonId = rental.DeliveryPersonId,
+                    MotorcycleId = rental.MotorcycleId,
+                    StartDate = rental.StartDate,
+                    EndDate = rental.EndDate,
+                    ExpectedEndDate = rental.ExpectedEndDate,
+                    ReturnDate = rental.ActualEndDate
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Erro ao obter aluguel com ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
+                logger.LogError(ex, "Erro ao obter locação com ID: {Id}", id);
+                return StatusCode(500, new { mensagem = "Erro interno do servidor" });
             }
         }
 
-        [HttpPost("{id}/calculate-return")]
-        public async Task<IActionResult> CalculateReturn(Guid id, [FromBody] CalculateReturnRequest request)
+        [HttpPut("{id}/devolucao")]
+        public async Task<IActionResult> InformarDevolucao(Guid id, [FromBody] RentalUpdateDto request)
         {
             try
             {
-                var result = await rentalService.CalculateReturnCostAsync(id, request.ReturnDate);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                logger.LogError(ex, "Erro ao calcular devolução para o aluguel com ID: {Id}", id);
-                return NotFound(new { message = ex.Message });
+                await rentalService.ProcessReturnAsync(id, request.ActualEndDate);
+
+                var calculation = await rentalService.CalculateReturnCostAsync(id, request.ActualEndDate);
+
+                return Ok(new
+                {
+                    mensagem = "Data de devolução informada com sucesso",
+                    custo_total = calculation.TotalCost,
+                    custo_base = calculation.BaseCost,
+                    multa_adicional = calculation.AdditionalCost
+                });
             }
             catch (InvalidOperationException ex)
             {
-                logger.LogError(ex, "Erro ao calcular devolução para o aluguel com ID: {Id}", id);
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Erro interno ao calcular devolução para o aluguel com ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpPost("{id}/return")]
-        public async Task<IActionResult> ReturnMotorcycle(Guid id, [FromBody] CalculateReturnRequest request)
-        {
-            try
-            {
-                var totalCost = await rentalService.FinalizeRentalAsync(id, request.ReturnDate);
-                return Ok(new { TotalCost = totalCost, Message = "Aluguel finalizado com sucesso" });
-            }
-            catch (ArgumentException ex)
-            {
-                logger.LogError(ex, "Erro ao finalizar aluguel com ID: {Id}", id);
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                logger.LogError(ex, "Erro ao finalizar aluguel com ID: {Id}", id);
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Erro interno ao finalizar aluguel com ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> CancelRental(Guid id)
-        {
-            try
-            {
-                var rental = await context.Rentals.FindAsync(id);
-                if (rental == null)
-                    return NotFound();
-
-                // Verificar se o aluguel já começou
-                if (rental.StartDate <= DateTime.Today)
-                    return BadRequest("Não é possível cancelar um aluguel que já iniciou");
-
-                context.Rentals.Remove(rental);
-                await context.SaveChangesAsync();
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Erro ao cancelar aluguel com ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
+                logger.LogError(ex, "Erro ao informar devolução para locação com ID: {Id}", id);
+                return StatusCode(500, new { mensagem = "Erro interno do servidor" });
             }
         }
     }

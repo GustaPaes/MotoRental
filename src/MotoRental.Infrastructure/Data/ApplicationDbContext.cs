@@ -14,29 +14,39 @@ namespace MotoRental.Infrastructure.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Motorcycle>()
-                .HasIndex(m => m.LicensePlate)
-                .IsUnique();
+            // Configurações específicas para Motorcycles
+            modelBuilder.Entity<Motorcycle>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.LicensePlate).IsRequired();
+                entity.HasIndex(e => e.LicensePlate).IsUnique();
+            });
 
-            modelBuilder.Entity<DeliveryPerson>()
-                .HasIndex(d => d.Cnpj)
-                .IsUnique();
+            // Configurações específicas para DeliveryPeople
+            modelBuilder.Entity<DeliveryPerson>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Cnpj).IsRequired();
+                entity.Property(e => e.CnhNumber).IsRequired();
+                entity.HasIndex(e => e.Cnpj).IsUnique();
+                entity.HasIndex(e => e.CnhNumber).IsUnique();
+            });
 
-            modelBuilder.Entity<DeliveryPerson>()
-                .HasIndex(d => d.CnhNumber)
-                .IsUnique();
+            // Configurações específicas para Rentals
+            modelBuilder.Entity<Rental>(entity =>
+            {
+                entity.HasKey(e => e.Id);
 
-            modelBuilder.Entity<Rental>()
-                .HasOne(r => r.Motorcycle)
-                .WithMany()
-                .HasForeignKey(r => r.MotorcycleId);
+                entity.HasOne(d => d.Motorcycle)
+                    .WithMany()
+                    .HasForeignKey(d => d.MotorcycleId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Rental>()
-                .HasOne(r => r.DeliveryPerson)
-                .WithMany()
-                .HasForeignKey(r => r.DeliveryPersonId);
-
-            base.OnModelCreating(modelBuilder);
+                entity.HasOne(d => d.DeliveryPerson)
+                    .WithMany()
+                    .HasForeignKey(d => d.DeliveryPersonId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

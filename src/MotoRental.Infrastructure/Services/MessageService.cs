@@ -6,24 +6,40 @@ using System.Text.Json;
 
 namespace MotoRental.Infrastructure.Services
 {
-    public class MessageService : IMessageService, IDisposable
+    public class MessageService : IMessageService
     {
         private readonly IConnection _connection;
-        private readonly IModel _channel;
         private readonly ILogger<MessageService> _logger;
 
         public MessageService(IConnection connection, ILogger<MessageService> logger)
         {
             _connection = connection;
-            _channel = _connection.CreateModel();
             _logger = logger;
+
+            // Verificar se a conexão está aberta
+            if (!_connection.IsOpen)
+            {
+                _logger.LogWarning("Conexão RabbitMQ não está aberta ao criar MessageService");
+            }
         }
 
         public async Task PublishMessage<T>(T message, string queueName)
         {
+            // Verificar se a conexão está válida antes de usar
+            if (_connection == null || !_connection.IsOpen)
+            {
+                _logger.LogError("Conexão RabbitMQ não está disponível");
+                throw new InvalidOperationException("Conexão RabbitMQ não está disponível");
+            }
+
+            IModel channel = null;
             try
             {
-                _channel.QueueDeclare(
+                // Criar um novo canal para cada operação
+                channel = _connection.CreateModel();
+
+                // Declarar a fila
+                channel.QueueDeclare(
                     queue: queueName,
                     durable: true,
                     exclusive: false,
@@ -31,34 +47,34 @@ namespace MotoRental.Infrastructure.Services
                     arguments: null
                 );
 
+                // Serializar a mensagem
                 var json = JsonSerializer.Serialize(message);
                 var body = Encoding.UTF8.GetBytes(json);
 
-                var properties = _channel.CreateBasicProperties();
+                // Configurar propriedades da mensagem
+                var properties = channel.CreateBasicProperties();
                 properties.Persistent = true;
 
-                _channel.BasicPublish(
+                // Publicar a mensagem
+                channel.BasicPublish(
                     exchange: "",
                     routingKey: queueName,
                     basicProperties: properties,
                     body: body
                 );
 
-                _logger.LogInformation("Message published to queue: {QueueName}", queueName);
+                _logger.LogInformation("Mensagem publicada na fila: {QueueName}", queueName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error publishing message to queue: {QueueName}", queueName);
+                _logger.LogError(ex, "Erro ao publicar mensagem na fila: {QueueName}", queueName);
                 throw;
             }
-        }
-
-        public void Dispose()
-        {
-            _channel?.Close();
-            _channel?.Dispose();
-            _connection?.Close();
-            _connection?.Dispose();
+            finally
+            {
+                channel?.Close();
+                channel?.Dispose();
+            }
         }
     }
 }

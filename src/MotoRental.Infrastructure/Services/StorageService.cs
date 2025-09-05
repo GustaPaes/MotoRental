@@ -23,6 +23,15 @@ namespace MotoRental.Infrastructure.Services
 
             try
             {
+                var bucketExistsArgs = new BucketExistsArgs().WithBucket(_bucketName);
+                bool found = await minioClient.BucketExistsAsync(bucketExistsArgs);
+                if (!found)
+                {
+                    var makeBucketArgs = new MakeBucketArgs().WithBucket(_bucketName);
+                    await minioClient.MakeBucketAsync(makeBucketArgs);
+                    logger.LogInformation("Bucket {BucketName} criado com sucesso.", _bucketName);
+                }
+
                 var objectName = $"{containerName}/{Guid.NewGuid()}_{file.FileName}";
 
                 using var stream = file.OpenReadStream();
@@ -36,13 +45,13 @@ namespace MotoRental.Infrastructure.Services
 
                 await minioClient.PutObjectAsync(putObjectArgs);
 
-                logger.LogInformation("File uploaded successfully: {ObjectName}", objectName);
+                logger.LogInformation("Arquivo enviado com sucesso: {ObjectName}", objectName);
 
                 return objectName;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error uploading file {FileName}", file.FileName);
+                logger.LogError(ex, "Erro ao carregar arquivo: {FileName}", file.FileName);
                 throw;
             }
         }
@@ -50,7 +59,7 @@ namespace MotoRental.Infrastructure.Services
         public async Task<bool> DeleteImageAsync(string imageUrl)
         {
             if (string.IsNullOrEmpty(imageUrl))
-                throw new ArgumentException("Image URL cannot be null or empty");
+                throw new ArgumentException("O URL da imagem não pode ser nulo ou vazio");
 
             try
             {
@@ -64,13 +73,13 @@ namespace MotoRental.Infrastructure.Services
 
                 await minioClient.RemoveObjectAsync(removeObjectArgs);
 
-                logger.LogInformation("File deleted successfully: {ObjectName}", objectName);
+                logger.LogInformation("Arquivo excluído com sucesso: {ObjectName}", objectName);
 
                 return true;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error deleting file {ImageUrl}", imageUrl);
+                logger.LogError(ex, "Erro ao excluir arquivo {ImageUrl}", imageUrl);
                 return false;
             }
         }

@@ -1,10 +1,18 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Minio;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
+using MotoRental.Application.DTOs;
 using MotoRental.Application.Interfaces;
+using MotoRental.Application.Mappings;
 using MotoRental.Application.Services;
+using MotoRental.Application.Validators;
 using MotoRental.Domain.Entities;
+using MotoRental.Domain.Interfaces;
 using MotoRental.Infrastructure.Consumers;
 using MotoRental.Infrastructure.Data;
 using MotoRental.Infrastructure.Repositories;
@@ -35,6 +43,8 @@ builder.Services.AddScoped(sp =>
     return client.GetDatabase(builder.Configuration["MongoDB:DatabaseName"] ?? "motorental");
 });
 
+BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+
 // Configure RabbitMQ
 builder.Services.AddSingleton<IConnection>(sp =>
 {
@@ -53,10 +63,10 @@ builder.Services.AddSingleton<IConnection>(sp =>
     const int maxRetries = 5;
 
     while (retryCount < maxRetries)
-    {
+{
         try
         {
-            return factory.CreateConnection();
+    return factory.CreateConnection();
         }
         catch (Exception ex)
         {
@@ -88,7 +98,23 @@ builder.Services.AddSingleton<MinioClient>(sp =>
 builder.Services.AddScoped<IStorageService, StorageService>();
 
 // Application Services
+// Registrar repositórios
+builder.Services.AddScoped<IDeliveryPersonRepository, DeliveryPersonRepository>();
+builder.Services.AddScoped<IMotorcycleRepository, MotorcycleRepository>();
+builder.Services.AddScoped<IRentalRepository, RentalRepository>();
+
+// Registrar serviços
+builder.Services.AddScoped<IDeliveryPersonService, DeliveryPersonService>();
+builder.Services.AddScoped<IMotorcycleService, MotorcycleService>();
 builder.Services.AddScoped<IRentalService, RentalService>();
+
+// Registrar validações
+builder.Services.AddScoped<IValidator<DeliveryPersonCreateDTO>, DeliveryPersonCreateValidator>();
+builder.Services.AddScoped<IValidator<MotorcycleCreateDTO>, MotorcycleCreateValidator>();
+builder.Services.AddScoped<IValidator<RentalCreateDTO>, RentalCreateValidator>();
+
+// AutoMapper
+builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile).Assembly);
 
 // MongoDB Repository
 builder.Services.AddScoped<IMongoRepository<Notification>>(provider =>
@@ -126,6 +152,22 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Ocorreu um erro ao migrar o banco de dados.");
+    }
+}
+
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>

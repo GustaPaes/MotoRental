@@ -5,16 +5,9 @@ using System.Linq.Expressions;
 
 namespace MotoRental.Infrastructure.Repositories
 {
-    public class MongoRepository<T> : IMongoRepository<T>
+    public class MongoRepository<T>(IMongoDatabase database, string collectionName, ILogger<MongoRepository<T>> logger) : IMongoRepository<T>
     {
-        private readonly IMongoCollection<T> _collection;
-        private readonly ILogger<MongoRepository<T>> _logger;
-
-        public MongoRepository(IMongoDatabase database, string collectionName, ILogger<MongoRepository<T>> logger)
-        {
-            _collection = database.GetCollection<T>(collectionName);
-            _logger = logger;
-        }
+        private readonly IMongoCollection<T> _collection = database.GetCollection<T>(collectionName);
 
         public async Task<IEnumerable<T>> FindAllAsync()
         {
@@ -24,7 +17,7 @@ namespace MotoRental.Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error finding all documents");
+                logger.LogError(ex, "Error finding all documents");
                 throw;
             }
         }
@@ -38,7 +31,7 @@ namespace MotoRental.Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error finding document by ID: {Id}", id);
+                logger.LogError(ex, "Error finding document by ID: {Id}", id);
                 throw;
             }
         }
@@ -48,11 +41,11 @@ namespace MotoRental.Infrastructure.Repositories
             try
             {
                 await _collection.InsertOneAsync(document);
-                _logger.LogInformation("Document inserted successfully");
+                logger.LogInformation("Document inserted successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error inserting document");
+                logger.LogError(ex, "Error inserting document");
                 throw;
             }
         }
@@ -63,11 +56,11 @@ namespace MotoRental.Infrastructure.Repositories
             {
                 var filter = Builders<T>.Filter.Eq("_id", id);
                 await _collection.ReplaceOneAsync(filter, document);
-                _logger.LogInformation("Document with ID {Id} replaced successfully", id);
+                logger.LogInformation("Document with ID {Id} replaced successfully", id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error replacing document with ID: {Id}", id);
+                logger.LogError(ex, "Error replacing document with ID: {Id}", id);
                 throw;
             }
         }
@@ -78,11 +71,11 @@ namespace MotoRental.Infrastructure.Repositories
             {
                 var filter = Builders<T>.Filter.Eq("_id", id);
                 await _collection.DeleteOneAsync(filter);
-                _logger.LogInformation("Document with ID {Id} deleted successfully", id);
+                logger.LogInformation("Document with ID {Id} deleted successfully", id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting document with ID: {Id}", id);
+                logger.LogError(ex, "Error deleting document with ID: {Id}", id);
                 throw;
             }
         }
@@ -95,7 +88,7 @@ namespace MotoRental.Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error filtering documents");
+                logger.LogError(ex, "Error filtering documents");
                 throw;
             }
         }
